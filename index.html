@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Test Droni DJI – Versione Premium</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { font-family: Arial; margin: 20px; background: #f4f4f4; }
+.container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+button { padding: 12px 20px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 6px; }
+button:hover { background: #0056b3; }
+.hidden { display: none; }
+.question { margin-bottom: 20px; padding: 15px; background: #eef2f7; border-radius: 8px; }
+.timer { font-size: 22px; font-weight: bold; color: #d9534f; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div id="startScreen">
+    <h2>Test Droni DJI – Versione Premium</h2>
+
+    <label>Nome:</label><br>
+    <input type="text" id="nome"><br><br>
+
+    <label>Cognome:</label><br>
+    <input type="text" id="cognome"><br><br>
+
+    <label>Punto Vendita:</label><br>
+    <select id="pv">
+        <option value="">Seleziona il punto vendita</option>
+        <option value="Fano">Fano</option>
+        <option value="Monsano">Monsano</option>
+        <option value="Osimo">Osimo</option>
+        <option value="Macerata">Macerata</option>
+        <option value="Civitanova">Civitanova</option>
+        <option value="Pesaro">Pesaro</option>
+        <option value="Foligno">Foligno</option>
+    </select>
+    <br><br>
+
+    <button onclick="startTest()">Inizia il Test</button>
+</div>
+
+<div id="testScreen" class="hidden">
+    <div class="timer" id="timer">Tempo: 07:00</div>
+    <div id="questions"></div>
+    <button onclick="finishTest()">Consegna Test</button>
+</div>
+
+<div id="resultScreen" class="hidden">
+    <h2>Risultato del Test</h2>
+    <p id="summary"></p>
+    <button onclick="sendEmail()">Invia risultato via email</button>
+</div>
+
+</div>
+
+<script>
+function generaCodice() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const blocco = () => Array.from({length: 4}, () => chars[Math.floor(Math.random()*chars.length)]).join("");
+    return `${blocco()}-${blocco()}-${blocco()}`;
+}
+
+let codiceUnivoco = generaCodice();
+let lastResult = {};
+
+let domande = [
+    { q: "Quale drone DJI è il più leggero tra i modelli elencati?", a: ["DJI NEO","DJI MINI 4K","DJI FLIP FLY","DJI MINI 4 PRO"], c: 2 },
+    { q: "Quale modello offre la migliore qualità video complessiva?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI MINI 4K"], c: 0 },
+    { q: "Quale drone è più indicato per principianti assoluti?", a: ["DJI FLIP FLY","DJI MINI 4 PRO","DJI MINI 5 PRO","DJI NEO 2"], c: 0 },
+    { q: "Quale modello ha il miglior sistema di evitamento ostacoli?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO","DJI MINI 4K"], c: 0 },
+    { q: "Quale drone ha la maggiore autonomia di volo?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI FLIP FLY"], c: 0 },
+    { q: "Quale modello è più adatto al vlogging aereo?", a: ["DJI MINI 4 PRO","DJI MINI 5 PRO","DJI NEO","DJI MINI 4K"], c: 1 },
+    { q: "Quale drone è considerato il miglior rapporto qualità/prezzo?", a: ["DJI MINI 4 PRO","DJI MINI 4K","DJI NEO 2","DJI FLIP FLY"], c: 1 },
+    { q: "Quale modello supporta le funzioni avanzate ActiveTrack più evolute?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI MINI 4K"], c: 0 },
+    { q: "Quale drone è più indicato per riprese professionali?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO","DJI FLIP FLY"], c: 0 },
+    { q: "Quale modello ha la fotocamera meno performante?", a: ["DJI FLIP FLY","DJI MINI 4K","DJI NEO","DJI NEO 2"], c: 0 },
+    { q: "Quale drone ha la migliore stabilizzazione video?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI MINI 4K"], c: 0 },
+    { q: "Quale modello è più adatto ai viaggiatori per peso e dimensioni?", a: ["DJI MINI 4K","DJI MINI 4 PRO","DJI MINI 5 PRO","DJI NEO 2"], c: 0 },
+    { q: "Quale drone ha la migliore resistenza al vento?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI MINI 4K"], c: 0 },
+    { q: "Quale modello è più indicato per social content veloci?", a: ["DJI NEO","DJI FLIP FLY","DJI MINI 4 PRO","DJI MINI 5 PRO"], c: 1 },
+    { q: "Quale drone ha la migliore qualità fotografica?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI MINI 4K"], c: 0 },
+    { q: "Quale modello è più adatto per un uso semi‑professionale?", a: ["DJI MINI 4 PRO","DJI MINI 5 PRO","DJI NEO","DJI FLIP FLY"], c: 1 },
+    { q: "Quale drone ha la minore autonomia di volo?", a: ["DJI FLIP FLY","DJI NEO","DJI MINI 4K","DJI MINI 4 PRO"], c: 0 },
+    { q: "Quale modello ha la migliore trasmissione video?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI MINI 4K"], c: 0 },
+    { q: "Quale drone è più indicato per un ragazzo alle prime armi?", a: ["DJI FLIP FLY","DJI MINI 4K","DJI MINI 4 PRO","DJI MINI 5 PRO"], c: 0 },
+    { q: "Quale modello ha il miglior sistema di sensori per il volo automatico?", a: ["DJI MINI 5 PRO","DJI MINI 4 PRO","DJI NEO 2","DJI MINI 4K"], c: 0 }
+];
+
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
+
+let timeLeft = 420;
+let timerInterval;
+
+function startTimer(){
+    timerInterval = setInterval(()=>{
+        timeLeft--;
+        let m = String(Math.floor(timeLeft/60)).padStart(2,"0");
+        let s = String(timeLeft%60).padStart(2,"0");
+        timer.innerText = `Tempo: ${m}:${s}`;
+        if(timeLeft<=0){ clearInterval(timerInterval); finishTest(); }
+    },1000);
+}
+
+function startTest(){
+    if(!nome.value || !cognome.value || !pv.value){ alert("Compila tutti i campi"); return; }
+
+    startScreen.classList.add("hidden");
+    testScreen.classList.remove("hidden");
+
+    shuffle(domande);
+
+    let html="";
+    domande.forEach((d,i)=>{
+        let risposte = d.a.map((r,idx)=>({text:r,index:idx}));
+        shuffle(risposte);
+
+        html += `<div class="question"><p><b>${i+1}. ${d.q}</b></p>`;
+        risposte.forEach(r=>{
+            html += `<label><input type="radio" name="q${i}" value="${r.index}">${r.text}</label><br>`;
+        });
+        html += `</div>`;
+    });
+
+    questions.innerHTML = html;
+    startTimer();
+}
+
+function finishTest(){
+    clearInterval(timerInterval);
+
+    let corrette=0, sbagliate=0, nonRisposte=0;
+
+    domande.forEach((d,i)=>{
+        let sel = document.querySelector(`input[name="q${i}"]:checked`);
+        if(!sel) nonRisposte++;
+        else if(parseInt(sel.value)===d.c) corrette++;
+        else sbagliate++;
+    });
+
+    let punteggio = corrette - sbagliate - nonRisposte;
+    let percentuale = Math.round((corrette/domande.length)*100);
+
+    lastResult = {punteggio,percentuale,corrette,sbagliate,nonRisposte};
+
+    testScreen.classList.add("hidden");
+    resultScreen.classList.remove("hidden");
+
+    summary.innerHTML = `
+        Codice: <b>${codiceUnivoco}</b><br>
+        Punteggio: <b>${punteggio}</b><br>
+        Percentuale: <b>${percentuale}%</b><br>
+        Corrette: ${corrette}<br>
+        Sbagliate: ${sbagliate}<br>
+        Non risposte: ${nonRisposte}
+    `;
+
+    inviaASheet(punteggio,percentuale,corrette,sbagliate,nonRisposte);
+}
+
+function inviaASheet(punteggio,percentuale,corrette,sbagliate,nonRisposte){
+    fetch("https://script.google.com/macros/s/AKfycbx6VCpMWPznjnsHLKddPcxEaUTU0i0FdaqgAPSQqi5kB-WRHL5JocBv1b3Myq7ltqSg/exec",{
+        method:"POST",
+        mode:"no-cors",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            test:"dji_droni",
+            codice:codiceUnivoco,
+            nome:nome.value,
+            cognome:cognome.value,
+            puntoVendita:pv.value,
+            punteggio,
+            percentuale,
+            corrette,
+            sbagliate,
+            nonRisposte
+        })
+    });
+}
+
+function sendEmail(){
+    let mail="d.pavoni@dml-italia.com";
+    let subject="Risultato Test Droni DJI";
+
+    let body =
+        "RISULTATO TEST DRONI DJI%0D%0A" +
+        "-----------------------------------------%0D%0A" +
+        "Codice univoco: "+codiceUnivoco+"%0D%0A" +
+        "Nome: "+nome.value+"%0D%0A" +
+        "Cognome: "+cognome.value+"%0D%0A" +
+        "Punto vendita: "+pv.value+"%0D%0A%0D%0A" +
+        "Punteggio: "+lastResult.punteggio+"%0D%0A" +
+        "Percentuale: "+lastResult.percentuale+"%0D%0A" +
+        "Corrette: "+lastResult.corrette+"%0D%0A" +
+        "Sbagliate: "+lastResult.sbagliate+"%0D%0A" +
+        "Non risposte: "+lastResult.nonRisposte+"%0D%0A";
+
+    window.location.href=`mailto:${mail}?subject=${subject}&body=${body}`;
+}
+</script>
+
+</body>
+</html>
